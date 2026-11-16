@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crédito Digital · prototipo IHM</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --bg:#eef1ef; --card:#ffffff; --ink:#1b2421; --muted:#5d6b66; --line:#d9e0dc;
+    --brand:#0f5c4c; --brand-2:#e6f0ec; --ok:#146c3a; --warn:#8a4f00; --err:#b3261e;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .phone{max-width:420px;min-height:100vh;margin:0 auto;background:var(--card);display:flex;flex-direction:column;box-shadow:0 0 0 1px var(--line)}
+  @media(min-width:600px){.phone{min-height:860px;margin:24px auto;border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.12)}}
+  header{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+  header .back{background:none;border:0;color:#fff;font-size:22px;cursor:pointer;padding:0 6px 0 0}
+  header .back[hidden]{display:none}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  .demo{background:#fff6e0;color:#6b4a00;font-size:12.5px;padding:6px 18px;border-bottom:1px solid #f0dfb0}
+  main{flex:1;padding:18px}
+  .screen{display:none}
+  .screen.on{display:block}
+  h2{font-size:21px;margin:4px 0 6px}
+  p.sub{color:var(--muted);margin:0 0 16px}
+  label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+  input[type=text],input[type=tel],input[type=number],select,textarea{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+  :focus-visible{outline:3px solid #f2a900;outline-offset:2px}
+  h2[tabindex="-1"]:focus{outline:none}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .skip{position:absolute;left:8px;top:-60px;background:#fff;color:var(--brand);padding:8px 12px;border-radius:8px;z-index:50;font-weight:600}
+  .skip:focus{top:8px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .invalid{border-color:var(--err)!important}
+  .msg{font-size:13px;color:var(--err);min-height:18px;margin-top:4px}
+  .hint{font-size:13px;color:var(--muted);margin-top:4px}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  .check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;margin-top:16px}
+  .check input{margin-top:3px;width:18px;height:18px}
+  .btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;font:600 16px system-ui,sans-serif;cursor:pointer;margin-top:18px;background:var(--brand);color:#fff}
+  .btn:disabled{background:#b9c4bf;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--brand);border:1.5px solid var(--brand)}
+  .btn.ghost:disabled{background:transparent;color:#b9c4bf!important;border-color:#b9c4bf!important}
+  .btn.link{background:none;color:var(--brand);padding:8px;margin-top:6px;font-weight:500}
+  .saved{font-size:12.5px;color:var(--ok);height:16px;text-align:right}
+  .otp{display:flex;gap:8px;justify-content:center;margin:18px 0 6px}
+  .otp input{width:44px;height:52px;text-align:center;font-size:22px;padding:0}
+  .steps{list-style:none;padding:0;margin:20px 0}
+  .steps li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+  .steps .dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:14px;flex:none}
+  .steps li.run{color:var(--ink);font-weight:600}
+  .steps li.run .dot{border-color:var(--brand);border-top-color:transparent;animation:spin .8s linear infinite}
+  .steps li.done{color:var(--ink)}
+  .steps li.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{height:8px;background:var(--line);border-radius:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .4s}
+  .timer{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;margin-top:8px}
+  .badge{display:inline-block;padding:5px 10px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:.02em}
+  .b-ok{background:#e3f4ea;color:var(--ok)} .b-warn{background:#fdf0dc;color:var(--warn)} .b-err{background:#fbe5e3;color:var(--err)}
+  .card{border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:14px 0}
+  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:15px}
+  .kv span:first-child{color:var(--muted)}
+  .big{font-size:30px;font-weight:700;margin:4px 0}
+  ul.plain{margin:8px 0;padding-left:20px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+  .modal.on{display:flex}
+  .sheet{background:#fff;width:100%;max-width:420px;border-radius:20px 20px 0 0;padding:20px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b2421;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .25s;z-index:30;max-width:90%;pointer-events:none}
+  .toast.on{opacity:1}
+  footer{padding:12px 18px;border-top:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between}
+  footer button{color:var(--brand);cursor:pointer;background:none;border:0;font:inherit;text-decoration:underline;padding:6px 2px}
+  .exp{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;cursor:pointer}
+  .exp:hover{border-color:var(--brand)}
+  .exp .top{display:flex;justify-content:space-between;font-weight:600}
+  .var{display:flex;align-items:center;gap:8px;font-size:14px;margin:6px 0}
+  .var b{flex:1;font-weight:500}
+  .var em{font-style:normal;color:var(--muted);font-size:13px;min-width:38px;text-align:right}
+  .var .w{height:6px;background:var(--brand);border-radius:6px}
+  #obs{position:fixed;right:10px;top:10px;width:260px;background:#111;color:#e8e8e8;font:12px/1.4 ui-monospace,Consolas,monospace;padding:10px;border-radius:10px;z-index:40;display:none;max-height:70vh;overflow:auto}
+  #obs button{font:11px ui-monospace,monospace;margin:4px 4px 0 0}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<div class="phone">
+  <header><button class="back" id="back" hidden aria-label="Volver">‹</button><h1 id="title">Crédito Digital</h1></header>
+  <div class="demo" role="note">Prototipo académico de IHM. Datos ficticios, ninguna operación es real.</div>
+  <main id="main" tabindex="-1">
+
+    <!-- P0 Inicio -->
+    <section class="screen on" id="s-inicio">
+      <h2>Préstamo personal en minutos</h2>
+      <p class="sub">Completa tus datos, autoriza la verificación y recibe tu respuesta en esta misma sesión.</p>
+      <div class="card">
+        <div class="kv"><span>Monto</span><span>S/ 500 a S/ 30,000</span></div>
+        <div class="kv"><span>Plazo</span><span>12, 24 o 36 meses</span></div>
+        <div class="kv"><span>Respuesta</span><span>En menos de 5 minutos</span></div>
+      </div>
+      <button class="btn" id="go-solicitar">Solicitar préstamo</button>
+    </section>
+
+    <!-- P1 Captura estructurada -->
+    <section class="screen" id="s-captura">
+      <h2>Tus datos</h2>
+      <p class="sub">Paso 1 de 3. Lo que ingreses se guarda mientras avanzas.</p>
+      <div class="saved" id="saved" role="status"></div>
+      <label for="dni">DNI</label>
+      <input type="tel" id="dni" maxlength="8" inputmode="numeric" placeholder="8 dígitos" autocomplete="off" aria-required="true" aria-describedby="m-dni">
+      <div class="msg" aria-live="polite" id="m-dni"></div>
+      <label for="cel">Celular</label>
+      <input type="tel" id="cel" maxlength="9" inputmode="numeric" placeholder="9XXXXXXXX" autocomplete="tel-national" aria-required="true" aria-describedby="m-cel">
+      <div class="msg" aria-live="polite" id="m-cel"></div>
+      <div class="row">
+        <div><label for="monto">Monto (S/)</label><input type="number" id="monto" min="500" max="30000" step="100" placeholder="5000" aria-required="true" aria-describedby="m-monto"></div>
+        <div><label for="plazo">Plazo</label><select id="plazo" aria-required="true" aria-describedby="m-monto"><option value="">Elige</option><option value="12">12 meses</option><option value="24">24 meses</option><option value="36">36 meses</option></select></div>
+      </div>
+      <div class="msg" aria-live="polite" id="m-monto"></div>
+      <label for="tipo">¿Cómo recibes tus ingresos?</label>
+      <select id="tipo" aria-required="true" aria-describedby="m-tipo">
+        <option value="">Elige una opción</option>
+        <option value="dependiente">Planilla (boleta de pago)</option>
+        <option value="independiente">Recibos por honorarios</option>
+        <option value="informal">Negocio propio sin comprobantes</option>
+      </select>
+      <div class="msg" aria-live="polite" id="m-tipo"></div>
+      <label for="ingreso">Ingreso mensual neto (S/)</label>
+      <input type="number" id="ingreso" min="0" step="50" placeholder="2500" aria-required="true" aria-describedby="m-ingreso">
+      <div class="msg" aria-live="polite" id="m-ingreso"></div>
+      <label class="check"><input type="checkbox" id="autoriza" aria-describedby="h-autoriza"> Autorizo la consulta de mis ingresos en SUNAT y de mi historial en centrales de riesgo para evaluar esta solicitud.</label>
+      <div class="hint" id="h-autoriza">Sin esta autorización tu solicitud no se rechaza. Pasa a un asesor que revisa tus documentos.</div>
+      <button class="btn" id="go-identidad" disabled>Continuar</button>
+    </section>
+
+    <!-- P2 Identidad -->
+    <section class="screen" id="s-identidad">
+      <h2>Confirma que eres tú</h2>
+      <p class="sub">Paso 2 de 3. Enviamos un código de 6 dígitos al <b id="cel-mask"></b>.</p>
+      <div class="hint">Código de prueba del prototipo: <b>123456</b></div>
+      <div class="otp" id="otp" role="group" aria-label="Código de verificación de 6 dígitos"></div>
+      <div class="msg" aria-live="polite" id="m-otp" style="text-align:center"></div>
+      <button class="btn" id="go-evaluar" disabled>Verificar</button>
+      <button class="btn link" id="reenviar" disabled>Reenviar código</button>
+    </section>
+
+    <!-- P3 Evaluación en curso -->
+    <section class="screen" id="s-evaluacion">
+      <h2>Evaluando tu solicitud</h2>
+      <p class="sub">Paso 3 de 3. No cierres esta pantalla.</p>
+      <div class="bar" id="barwrap" role="progressbar" aria-label="Progreso de la evaluación" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="bar"></i></div>
+      <div class="timer" id="timer" aria-hidden="true">0 s transcurridos</div>
+      <ul class="steps" id="steps" aria-live="polite">
+        <li><span class="dot" aria-hidden="true"></span><span class="sr-only st-txt">pendiente: </span>Identidad verificada</li>
+        <li><span class="dot" aria-hidden="true"></span><span class="sr-only st-txt">pendiente: </span>Consulta de fuentes de ingreso</li>
+        <li><span class="dot" aria-hidden="true"></span><span class="sr-only st-txt">pendiente: </span>Cálculo de capacidad de pago</li>
+        <li><span class="dot" aria-hidden="true"></span><span class="sr-only st-txt">pendiente: </span>Aplicación de la política de crédito</li>
+      </ul>
+      <button class="btn ghost" id="cancelar-eval">Cancelar solicitud</button>
+    </section>
+
+    <!-- P4 Dictamen -->
+    <section class="screen" id="s-dictamen" aria-live="polite"></section>
+
+    <!-- P5 Cierre -->
+    <section class="screen" id="s-cierre">
+      <span class="badge b-ok">DESEMBOLSO REALIZADO</span>
+      <div class="big" id="c-monto"></div>
+      <p class="sub" id="c-detalle"></p>
+      <div class="card" id="c-card"></div>
+      <button class="btn" id="descargar">Descargar constancia</button>
+      <button class="btn ghost" id="fin">Volver al inicio</button>
+    </section>
+
+    <!-- P6 Panel del analista -->
+    <section class="screen" id="s-analista">
+      <h2>Bandeja de derivados</h2>
+      <p class="sub">Solo llegan los expedientes que el modelo no pudo resolver. Política v1.3.</p>
+      <div id="bandeja"></div>
+    </section>
+
+    <section class="screen" id="s-expediente"></section>
+  </main>
+  <footer><nav aria-label="Cambiar de vista" style="display:contents"><button type="button" id="go-cliente">Vista cliente</button><button type="button" id="go-analista">Vista analista</button></nav></footer>
+</div>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dlg-t" tabindex="-1"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="obs"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const TEA = 0.35, r = Math.pow(1+TEA,1/12)-1, RATIO = 0.40;
+const st = {};            // datos de la solicitud
+let history = [];
+let cur = 's-inicio';
+
+/* ---------- registro de observador (?obs=1) ---------- */
+const LOG_KEY = 'ihm-proto-log';
+let log = [];
+try { log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) {}
+function ev(type, detail){
+  log.push({t: Date.now(), type, detail: detail || ''});
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e) {}
+  renderObs();
+}
+const OBS = new URLSearchParams(location.search).has('obs');
+let obsOpen = false;
+function renderObs(){
+  if(!OBS) return;
+  const o = $('#obs'); o.style.display = 'block';
+  if(!obsOpen){ o.innerHTML = '<span onclick="obsOpen=true;renderObs()" style="cursor:pointer">OBS ▸</span>'; o.style.width = 'auto'; return; }
+  o.style.width = '260px';
+  const start = [...log].reverse().find(e => e.type === 'tarea_inicio');
+  const after = start ? log.filter(e => e.t >= start.t) : [];
+  const end = after.find(e => e.type === 'dictamen');
+  const errs = after.filter(e => e.type === 'error').length;
+  const backs = after.filter(e => e.type === 'volver').length;
+  const secs = start ? Math.round(((end ? end.t : Date.now()) - start.t)/1000) : 0;
+  o.innerHTML = `<b onclick="obsOpen=false;renderObs()" style="cursor:pointer">OBSERVADOR ▾</b><br>tarea ${start ? (end ? 'terminada' : 'en curso') : 'sin iniciar'}<br>`+
+    `tiempo ${secs} s<br>errores ${errs} · retrocesos ${backs}<br>`+
+    (end ? `resultado ${end.detail}<br>` : '')+
+    `<button onclick="dlLog()">CSV</button><button onclick="clearLog()">Borrar</button><hr>`+
+    after.slice(-8).map(e => `${new Date(e.t).toLocaleTimeString()} ${e.type} ${e.detail}`).join('<br>');
+}
+function dlLog(){
+  const rows = ['fecha_hora,evento,detalle', ...log.map(e => `${new Date(e.t).toISOString()},${e.type},"${String(e.detail).replace(/"/g,'""')}"`)];
+  download('registro-prueba.csv', rows.join('\n'), 'text/csv');
+}
+function clearLog(){ log = []; try{localStorage.removeItem(LOG_KEY)}catch(e){}; renderObs(); }
+if(OBS) setInterval(renderObs, 1000);
+
+/* ---------- navegación ---------- */
+const TITLES = {'s-inicio':'Crédito Digital','s-captura':'Solicitud','s-identidad':'Verificación','s-evaluacion':'Evaluación','s-dictamen':'Resultado','s-cierre':'Listo','s-analista':'Panel del analista','s-expediente':'Expediente'};
+const NO_BACK = ['s-inicio','s-evaluacion','s-dictamen','s-cierre','s-analista'];
+function show(id, push = true){
+  if(push && cur !== id) history.push(cur);
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  cur = id; $('#title').textContent = TITLES[id];
+  $('#back').hidden = NO_BACK.includes(id);
+  window.scrollTo(0,0);
+  const h = document.querySelector('#'+id+' h2');
+  if(h && id !== 's-identidad'){ h.setAttribute('tabindex','-1'); setTimeout(() => h.focus(), 30); }
+  ev('pantalla', id);
+}
+$('#back').onclick = () => { ev('volver', cur); show(history.pop() || 's-inicio', false); };
+$('#go-cliente').onclick = () => { history = []; show('s-inicio'); };
+$('#go-analista').onclick = () => { history = []; ev('tarea_inicio', 'analista'); renderBandeja(); show('s-analista'); };
+
+function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 2600); }
+let lastFocus = null;
+function modal(html){
+  lastFocus = document.activeElement;
+  $('#sheet').innerHTML = html.replace('<h2>', '<h2 id="dlg-t">');
+  $('#modal').classList.add('on');
+  document.querySelector('.phone').setAttribute('aria-hidden','true');
+  const f = $('#sheet').querySelector('input,button:not([disabled])'); (f || $('#sheet')).focus();
+}
+function closeModal(){
+  $('#modal').classList.remove('on');
+  document.querySelector('.phone').removeAttribute('aria-hidden');
+  if(lastFocus && document.contains(lastFocus) && lastFocus.offsetParent) lastFocus.focus();
+}
+document.addEventListener('keydown', k => {
+  if(!$('#modal').classList.contains('on')) return;
+  if(k.key === 'Escape'){ closeModal(); return; }
+  if(k.key === 'Tab'){
+    const els = [...$('#sheet').querySelectorAll('input,button:not([disabled])')];
+    if(!els.length) return;
+    const a = els[0], z = els[els.length-1];
+    if(k.shiftKey && document.activeElement === a){ k.preventDefault(); z.focus(); }
+    else if(!k.shiftKey && document.activeElement === z){ k.preventDefault(); a.focus(); }
+  }
+});
+$('#modal').onclick = e => { if(e.target.id === 'modal') closeModal(); };
+const soles = n => 'S/ ' + Number(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click();
+}
+
+/* ---------- P0 → P1 ---------- */
+$('#go-solicitar').onclick = () => { ev('tarea_inicio', 'cliente'); show('s-captura'); };
+
+/* ---------- P1 captura con validación en línea ---------- */
+const fields = ['dni','cel','monto','plazo','tipo','ingreso'];
+const touched = {};
+function validate(){
+  const v = id => $('#'+id).value.trim();
+  const e = {};
+  if(!/^\d{8}$/.test(v('dni'))) e.dni = 'El DNI tiene 8 dígitos.';
+  if(!/^9\d{8}$/.test(v('cel'))) e.cel = 'El celular empieza con 9 y tiene 9 dígitos.';
+  const m = +v('monto');
+  if(!v('monto') || m < 500 || m > 30000) e.monto = 'Ingresa un monto entre S/ 500 y S/ 30,000.';
+  else if(!v('plazo')) e.monto = 'Elige un plazo.';
+  if(!v('tipo')) e.tipo = 'Elige cómo recibes tus ingresos.';
+  if(!v('ingreso') || +v('ingreso') <= 0) e.ingreso = 'Ingresa tu ingreso mensual.';
+  return e;
+}
+function paint(){
+  const e = validate();
+  ['dni','cel','monto','tipo','ingreso'].forEach(k => {
+    const vis = touched[k] || (k === 'monto' && touched.plazo);
+    $('#m-'+k).textContent = vis && e[k] ? e[k] : '';
+    const bad = !!(vis && e[k]) && !(k === 'monto' && e.monto === 'Elige un plazo.');
+    $('#'+k).classList.toggle('invalid', bad); $('#'+k).setAttribute('aria-invalid', bad);
+  });
+  const pbad = !!((touched.plazo || touched.monto) && e.monto === 'Elige un plazo.');
+  $('#plazo').classList.toggle('invalid', pbad); $('#plazo').setAttribute('aria-invalid', pbad);
+  $('#go-identidad').disabled = Object.keys(e).length > 0;
+  return e;
+}
+let saveT;
+fields.forEach(id => {
+  const el = $('#'+id);
+  el.addEventListener('input', () => {
+    if(id === 'dni' || id === 'cel') el.value = el.value.replace(/\D/g,'');
+    paint();
+    clearTimeout(saveT); $('#saved').textContent = '';
+    saveT = setTimeout(() => $('#saved').textContent = 'Borrador guardado ✓', 500);
+  });
+  el.addEventListener('blur', () => {
+    touched[id] = true;
+    const e = paint();
+    const k = id === 'plazo' ? 'monto' : id;
+    if(e[k] && $('#'+id).value.trim()) ev('error', id + ': ' + e[k]);
+  });
+});
+$('#autoriza').onchange = () => {
+  $('#h-autoriza').style.color = $('#autoriza').checked ? 'var(--muted)' : 'var(--warn)';
+  ev('autoriza', $('#autoriza').checked ? 'si' : 'no');
+};
+$('#go-identidad').onclick = () => {
+  fields.forEach(id => st[id] = $('#'+id).value.trim());
+  st.autoriza = $('#autoriza').checked;
+  if(!st.autoriza){
+    modal(`<h2>¿Continuar sin autorizar la consulta?</h2>
+      <p class="sub">No podremos verificar tus ingresos en línea. Tu solicitud pasará a un asesor y la respuesta no será inmediata.</p>
+      <button class="btn" onclick="closeModal();$('#autoriza').checked=true;$('#autoriza').onchange();ev('autoriza','corrige en confirmación')">Autorizar y continuar</button>
+      <button class="btn ghost" onclick="closeModal();ev('autoriza','sigue sin autorizar');startOtp()">Continuar sin autorizar</button>`);
+    return;
+  }
+  startOtp();
+};
+
+/* ---------- P2 identidad (OTP) ---------- */
+let tries = 0, resendT;
+function startOtp(){
+  st.autoriza = $('#autoriza').checked;
+  tries = 0;
+  $('#cel-mask').textContent = '*** *** ' + st.cel.slice(-3);
+  const box = $('#otp'); box.innerHTML = '';
+  for(let i = 0; i < 6; i++){
+    const inp = document.createElement('input');
+    inp.type = 'tel'; inp.maxLength = 1; inp.inputMode = 'numeric'; inp.autocomplete = i === 0 ? 'one-time-code' : 'off';
+    inp.setAttribute('aria-label', `Dígito ${i+1} de 6`); inp.setAttribute('aria-describedby', 'm-otp');
+    inp.oninput = () => { inp.value = inp.value.replace(/\D/g,''); if(inp.value && inp.nextSibling) inp.nextSibling.focus(); otpState(); };
+    inp.onpaste = p => {
+      const d = (p.clipboardData.getData('text') || '').replace(/\D/g,'').slice(0,6);
+      if(d.length < 2) return;
+      p.preventDefault();
+      [...box.children].forEach((x, j) => x.value = d[j] || '');
+      box.children[Math.min(d.length, 5)].focus(); otpState();
+    };
+    inp.onkeydown = k => { if(k.key === 'Backspace' && !inp.value && inp.previousSibling) inp.previousSibling.focus(); };
+    box.appendChild(inp);
+  }
+  $('#m-otp').textContent = '';
+  otpState(); resendCountdown();
+  show('s-identidad');
+  setTimeout(() => box.firstChild.focus(), 40);
+}
+const otpVal = () => [...$('#otp').children].map(i => i.value).join('');
+function otpState(){ $('#go-evaluar').disabled = otpVal().length !== 6; }
+function resendCountdown(){
+  let s = 20; const b = $('#reenviar'); b.disabled = true;
+  clearInterval(resendT);
+  resendT = setInterval(() => { s--; b.textContent = s > 0 ? `Reenviar código en ${s} s` : 'Reenviar código'; if(s <= 0){ clearInterval(resendT); b.disabled = false; } }, 1000);
+  b.textContent = `Reenviar código en ${s} s`;
+}
+$('#reenviar').onclick = () => { ev('reenviar_otp'); toast('Te enviamos un nuevo código'); tries = 0; $('#m-otp').textContent = ''; resendCountdown(); };
+$('#go-evaluar').onclick = () => {
+  if(otpVal() !== '123456'){
+    tries++; ev('error', 'otp incorrecto ' + tries);
+    [...$('#otp').children].forEach(i => { i.value = ''; i.classList.add('invalid'); });
+    $('#otp').firstChild.focus(); otpState();
+    if(tries >= 3){
+      $('#m-otp').textContent = 'Superaste los 3 intentos. Pide un código nuevo. Tus datos siguen guardados.';
+      $('#go-evaluar').disabled = true;
+      [...$('#otp').children].forEach(i => i.disabled = true);
+      $('#reenviar').onclick = () => { ev('reenviar_otp'); startOtp(); toast('Te enviamos un nuevo código'); };
+    } else {
+      $('#m-otp').textContent = `Código incorrecto. Te quedan ${3 - tries} intentos.`;
+    }
+    return;
+  }
+  ev('otp_ok'); evaluar();
+};
+
+/* ---------- P3 evaluación ---------- */
+let evalTimers = [];
+function evaluar(){
+  show('s-evaluacion');
+  const items = [...$('#steps').children];
+  items.forEach(li => { li.className = ''; li.querySelector('.dot').textContent = ''; li.querySelector('.st-txt').textContent = 'pendiente: '; });
+  $('#bar').style.width = '0';
+  const t0 = Date.now();
+  const tick = setInterval(() => $('#timer').textContent = Math.floor((Date.now() - t0)/1000) + ' s transcurridos', 250);
+  evalTimers = [tick];
+  const step = i => {
+    if(i > 0){ items[i-1].className = 'done'; items[i-1].querySelector('.dot').textContent = '✓'; items[i-1].querySelector('.st-txt').textContent = 'completado: '; }
+    $('#bar').style.width = (i/items.length*100) + '%';
+    $('#barwrap').setAttribute('aria-valuenow', Math.round(i/items.length*100));
+    if(i === items.length){ clearInterval(tick); evalTimers.push(setTimeout(dictamen, 500)); return; }
+    items[i].className = 'run'; items[i].querySelector('.st-txt').textContent = 'en curso: ';
+    evalTimers.push(setTimeout(() => step(i+1), 1600 + Math.random()*900));
+  };
+  step(0);
+}
+$('#cancelar-eval').onclick = () => {
+  modal(`<h2>¿Cancelar la evaluación?</h2>
+    <p class="sub">La verificación ya empezó. Si cancelas, tendrás que confirmar tu identidad de nuevo. Tus datos del paso 1 se conservan.</p>
+    <button class="btn" onclick="closeModal()">Seguir evaluando</button>
+    <button class="btn ghost" style="color:var(--err);border-color:var(--err)" onclick="closeModal();evalTimers.forEach(t=>{clearTimeout(t);clearInterval(t)});ev('cancelar_eval');history=[];show('s-captura')">Sí, cancelar</button>`);
+};
+
+/* ---------- P4 dictamen (3 desenlaces) ---------- */
+function citaProxima(){
+  const d = new Date(); let n = 0;
+  while(n < 2){ d.setDate(d.getDate()+1); if(d.getDay() !== 0 && d.getDay() !== 6) n++; }
+  return d.toLocaleDateString('es-PE', {weekday:'long', day:'2-digit', month:'2-digit'});
+}
+const cuotaDe = (M, n) => M*r/(1 - Math.pow(1+r, -n));
+function dictamen(){
+  const M = +st.monto, n = +st.plazo, I = +st.ingreso;
+  const cuota = cuotaDe(M, n), maxCuota = I*RATIO;
+  st.cuota = cuota;
+  const s = $('#s-dictamen');
+  if(st.tipo === 'informal' || !st.autoriza){
+    st.res = 'derivado';
+    const falta = [];
+    if(!st.autoriza) falta.push('Autorización de consulta de ingresos y centrales de riesgo');
+    if(st.tipo === 'informal') falta.push('Movimientos de tu cuenta o billetera de los últimos 3 meses', 'Foto del local o comprobante de un proveedor');
+    falta.push('DNI vigente');
+    s.innerHTML = `<span class="badge b-warn">DERIVADO A UN ASESOR</span>
+      <h2 style="margin-top:12px">Tu solicitud sigue en evaluación</h2>
+      <p class="sub">No pudimos verificar tus ingresos en línea. Esto no es un rechazo. Un asesor revisará tu caso con estos documentos.</p>
+      <div class="card"><b>Lo que te falta presentar</b><ul class="plain">${falta.map(f => `<li>${f}</li>`).join('')}</ul></div>
+      <div class="card"><div class="kv"><span>Cita propuesta</span><b>${citaProxima()} · 10:30 a. m.</b></div><div class="kv"><span>Canal</span><b>Videollamada</b></div><div class="kv"><span>N.º de expediente</span><b>EXP-${String(Date.now()).slice(-5)}</b></div></div>
+      <button class="btn" onclick="ev('acepta_cita');toast('Cita confirmada. Te enviamos el detalle por SMS.');">Confirmar cita</button>
+      <button class="btn ghost" onclick="constancia();">Descargar constancia</button>`;
+  } else if(cuota > maxCuota){
+    st.res = 'no aprobado';
+    const Mmax = Math.floor(maxCuota*(1 - Math.pow(1+r, -n))/r/100)*100;
+    s.innerHTML = `<span class="badge b-err">NO APROBADO POR AHORA</span>
+      <h2 style="margin-top:12px">La cuota supera tu capacidad de pago</h2>
+      <p class="sub">Para ${soles(M)} a ${n} meses la cuota sería ${soles(cuota)}. Con tu ingreso, la cuota máxima es ${soles(maxCuota)} (40 % del ingreso).</p>
+      ${Mmax >= 500 ? `<div class="card"><b>Puedes volver a intentarlo ahora</b><div class="kv"><span>Monto que sí calza a ${n} meses</span><b>${soles(Mmax)}</b></div><div class="kv"><span>Cuota aproximada</span><b>${soles(cuotaDe(Mmax,n))}</b></div></div>
+      <button class="btn" onclick="ev('reintento_monto','${Mmax}');$('#monto').value=${Mmax};$('#monto').dispatchEvent(new Event('input'));history=[];show('s-captura');toast('Actualizamos el monto. Revisa y continúa.')">Solicitar ${soles(Mmax)}</button>` :
+      `<div class="card">Con tu ingreso actual el monto mínimo no calza. Podrás volver a postular cuando tu ingreso mensual supere ${soles(Math.ceil(cuotaDe(500,36)/RATIO))}.</div>`}
+      <button class="btn ghost" onclick="constancia()">Descargar constancia</button>`;
+  } else {
+    st.res = 'aprobado';
+    s.innerHTML = `<span class="badge b-ok">APROBADO</span>
+      <div class="big">${soles(M)}</div>
+      <p class="sub">Tu cuota cabe en tu capacidad de pago. Revisa las condiciones antes de aceptar.</p>
+      <div class="card">
+        <div class="kv"><span>Cuota mensual</span><b>${soles(cuota)}</b></div>
+        <div class="kv"><span>Plazo</span><b>${n} meses</b></div>
+        <div class="kv"><span>TEA</span><b>${(TEA*100).toFixed(2)} %</b></div>
+        <div class="kv"><span>Total a pagar</span><b>${soles(cuota*n)}</b></div>
+      </div>
+      <button class="btn" onclick="confirmarDesembolso()">Aceptar y desembolsar</button>
+      <button class="btn link" onclick="ev('cambia_condiciones');history=[];show('s-captura')">Cambiar monto o plazo</button>`;
+  }
+  ev('dictamen', st.res);
+  show('s-dictamen');
+}
+function confirmarDesembolso(){
+  ev('abre_confirmacion');
+  modal(`<h2>Confirma el desembolso</h2>
+    <div class="kv"><span>Monto</span><b>${soles(st.monto)}</b></div>
+    <div class="kv"><span>Cuota</span><b>${soles(st.cuota)} × ${st.plazo}</b></div>
+    <div class="kv"><span>Cuenta de abono</span><b>Ahorros ****4821</b></div>
+    <label class="check"><input type="checkbox" id="acepto" onchange="$('#ok-des').disabled=!this.checked"> Leí la hoja resumen y acepto las condiciones del préstamo.</label>
+    <button class="btn" id="ok-des" disabled onclick="closeModal();desembolsar()">Confirmar desembolso</button>
+    <button class="btn ghost" onclick="closeModal();ev('cierra_confirmacion')">Revisar de nuevo</button>`);
+}
+
+/* ---------- P5 cierre ---------- */
+function desembolsar(){
+  st.op = 'OP-' + String(Date.now()).slice(-8);
+  ev('desembolso', st.op);
+  $('#c-monto').textContent = soles(st.monto);
+  $('#c-detalle').textContent = 'Ya está en tu cuenta de ahorros ****4821.';
+  $('#c-card').innerHTML = `<div class="kv"><span>N.º de operación</span><b>${st.op}</b></div><div class="kv"><span>Primera cuota</span><b>${soles(st.cuota)}</b></div><div class="kv"><span>Plazo</span><b>${st.plazo} meses</b></div>`;
+  history = []; show('s-cierre');
+}
+function constancia(){
+  ev('descarga_constancia', st.res);
+  const t = [`CONSTANCIA DE EVALUACIÓN (prototipo académico, datos ficticios)`, `Fecha ${new Date().toLocaleString('es-PE')}`,
+    `Resultado ${st.res}`, `Monto solicitado ${soles(st.monto)} a ${st.plazo} meses`, `Ingreso declarado ${soles(st.ingreso)} (${st.tipo})`,
+    `Autorizó consulta de fuentes ${st.autoriza ? 'sí' : 'no'}`, `Cuota calculada ${soles(st.cuota)}`, `Política aplicada v1.3`, st.op ? `Operación ${st.op}` : ''].join('\n');
+  download('constancia-evaluacion.txt', t, 'text/plain');
+  toast('Constancia descargada');
+}
+$('#descargar').onclick = constancia;
+$('#fin').onclick = () => { history = []; show('s-inicio'); };
+
+/* ---------- P6 panel del analista ---------- */
+const exps = [
+  {id:'EXP-40211', tipo:'Negocio propio sin comprobantes', monto:8000, plazo:24, ingreso:3200, score:0.62, vars:[['Antigüedad del negocio',0.9],['Movimientos de billetera',0.7],['Deuda en centrales',0.4]], estado:'pendiente'},
+  {id:'EXP-40218', tipo:'Recibos por honorarios', monto:15000, plazo:36, ingreso:4100, score:0.48, vars:[['Variabilidad del ingreso',0.85],['Sin autorización SUNAT',0.8],['Historial de pagos',0.5]], estado:'pendiente'},
+  {id:'EXP-40225', tipo:'Negocio propio sin comprobantes', monto:3000, plazo:12, ingreso:1800, score:0.71, vars:[['Historial de pagos',0.8],['Monto bajo vs. ingreso',0.6],['Sin comprobantes',0.55]], estado:'pendiente'}
+];
+function renderBandeja(){
+  const pend = exps.filter(e => e.estado === 'pendiente'), res = exps.filter(e => e.estado !== 'pendiente');
+  $('#bandeja').innerHTML = `<b>Pendientes (${pend.length})</b>` + pend.map(card).join('') +
+    (res.length ? `<b style="display:block;margin-top:18px">Resueltos hoy (${res.length})</b>` + res.map(card).join('') : '');
+}
+const card = e => `<button type="button" class="exp" onclick="abrirExp('${e.id}')" aria-label="Abrir ${e.id}, ${e.estado}, ${e.tipo}, ${soles(e.monto)}"><div class="top"><span>${e.id}</span><span class="badge ${e.estado==='pendiente'?'b-warn':e.estado==='aprobado'?'b-ok':'b-err'}">${e.estado.toUpperCase()}</span></div>
+  <div class="hint">${e.tipo} · ${soles(e.monto)} a ${e.plazo} m · score ${e.score.toFixed(2)}</div></button>`;
+function abrirExp(id){
+  const e = exps.find(x => x.id === id);
+  const cerrado = e.estado !== 'pendiente';
+  $('#s-expediente').innerHTML = `<h2>${e.id}</h2><p class="sub">${e.tipo}</p>
+    <div class="card"><div class="kv"><span>Monto</span><b>${soles(e.monto)} a ${e.plazo} meses</b></div><div class="kv"><span>Ingreso declarado</span><b>${soles(e.ingreso)}</b></div>
+    <div class="kv"><span>Cuota / ingreso</span><b>${(cuotaDe(e.monto,e.plazo)/e.ingreso*100).toFixed(1)} %</b></div><div class="kv"><span>Score del modelo</span><b>${e.score.toFixed(2)}</b></div><div class="kv"><span>Política</span><b>v1.3</b></div></div>
+    <div class="card"><b>Variables de mayor peso</b>${e.vars.map(v => `<div class="var"><b>${v[0]}</b><span class="w" aria-hidden="true" style="width:${v[1]*80}px"></span><em>${Math.round(v[1]*100)} %</em></div>`).join('')}</div>
+    ${cerrado ? `<div class="card"><b>Dictamen ${e.estado}</b><p class="sub" style="margin:6px 0 0">${e.sustento}</p></div>` :
+    `<label for="sustento">Sustento del dictamen</label><textarea id="sustento" rows="3" placeholder="Explica en qué te basas (mínimo 20 caracteres)" aria-describedby="h-sus"></textarea>
+    <div class="hint" id="h-sus" aria-live="polite">0 / 20 caracteres</div>
+    <div class="row"><button class="btn ghost" style="color:var(--err);border-color:var(--err)" id="rech" disabled>Rechazar</button><button class="btn" id="apro" disabled>Aprobar</button></div>`}`;
+  history = ['s-analista']; show('s-expediente', false); $('#back').hidden = false;
+  if(cerrado) return;
+  const ta = $('#sustento');
+  ta.oninput = () => { const n = ta.value.trim().length; $('#h-sus').textContent = `${n} / 20 caracteres`; $('#rech').disabled = $('#apro').disabled = n < 20; };
+  const decidir = dec => modal(`<h2>¿${dec === 'aprobado' ? 'Aprobar' : 'Rechazar'} ${e.id}?</h2><p class="sub">El dictamen queda registrado con tu sustento y la política v1.3. No se puede editar después.</p>
+    <button class="btn" onclick="closeModal();registrar('${e.id}','${dec}')">Sí, registrar</button><button class="btn ghost" onclick="closeModal()">Revisar de nuevo</button>`);
+  $('#apro').onclick = () => decidir('aprobado');
+  $('#rech').onclick = () => decidir('rechazado');
+}
+function registrar(id, dec){
+  const e = exps.find(x => x.id === id);
+  e.estado = dec; e.sustento = $('#sustento').value.trim();
+  ev('dictamen', 'analista ' + id + ' ' + dec);
+  toast(`Dictamen registrado. ${id} pasó a resueltos.`);
+  history = []; renderBandeja(); show('s-analista');
+}
+renderObs();
+</script>
+</body>
+</html>
